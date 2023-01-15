@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"log"
 	"path/filepath"
+	"time"
 
 	//
 	// Uncomment to load all auth plugins
@@ -121,8 +122,12 @@ func main() {
 
 	log.Printf("---Starting Kubernetes external client!---")
 
-	listPods("portworx-client")
-
 	createDeployment("default", "nginx", "nginx", "1.19.0", 80, 3)
+
+	log.Printf("Waiting for 10 seconds to create the deployment")
+
+	time.Sleep(10 * time.Second)
+
+	listPods("default")
 
 }
