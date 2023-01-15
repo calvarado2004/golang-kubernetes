@@ -4,6 +4,7 @@ import (
 	"context"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -59,8 +60,46 @@ func listPods(namespace string) {
 
 }
 
-// createDeployment creates a deployment
-func createDeployment(namespace string, appName string, appImage string, tagImage string, containerPort int32, replicas int32) {
+// createPVC creates a PVC using the given storage class
+func createPVC(namespace string, appName string, storageClassName string, size string) {
+
+	log.Printf("---Creating PVC on %s namespace of app %s ---", namespace, appName)
+
+	clientset, err := getClient()
+	if err != nil {
+		log.Printf("Error getting client: %v", err)
+		return
+	}
+
+	pvc := clientset.CoreV1().PersistentVolumeClaims(namespace)
+
+	_, err = pvc.Create(context.Background(), &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: appName + "-pvc",
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: resource.MustParse(size),
+				},
+			},
+			StorageClassName: &storageClassName,
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		log.Printf("Error creating PVC %s", err)
+		return
+	}
+
+	log.Printf("PVC %s created successfully!", pvc)
+
+}
+
+// createDeployment creates a deployment with a PVC
+func createDeploymentWithPVC(namespace string, appName string, appImage string, tagImage string, containerPort int32, replicas int32) {
 
 	var int32Ptr = func(i int32) *int32 { return &i }
 
@@ -103,6 +142,22 @@ func createDeployment(namespace string, appName string, appImage string, tagImag
 									ContainerPort: containerPort,
 								},
 							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      appName + "-volume",
+									MountPath: "/data",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: appName + "-volume",
+							VolumeSource: corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: appName + "-pvc",
+								},
+							},
 						},
 					},
 				},
@@ -122,7 +177,9 @@ func main() {
 
 	log.Printf("---Starting Kubernetes external client!---")
 
-	createDeployment("default", "nginx", "nginx", "1.19.0", 80, 3)
+	createPVC("default", "nginx", "portworx-db-sc", "2Gi")
+
+	createDeploymentWithPVC("default", "nginx", "nginx", "1.19.0", 80, 1)
 
 	log.Printf("Waiting for 10 seconds to create the deployment")
 
