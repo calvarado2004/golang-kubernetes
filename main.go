@@ -60,8 +60,8 @@ func listPods(namespace string) {
 
 }
 
-// createPVC creates a PVC using the given storage class
-func createPVC(namespace string, appName string, storageClassName string, size string) {
+// createSharedv4PVC creates a PVC using the given storage class, ReadWriteMany
+func createSharedv4PVC(namespace string, appName string, storageClassName string, size string) {
 
 	log.Printf("---Creating PVC on %s namespace of app %s ---", namespace, appName)
 
@@ -79,7 +79,7 @@ func createPVC(namespace string, appName string, storageClassName string, size s
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{
-				corev1.ReadWriteOnce,
+				corev1.ReadWriteMany,
 			},
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
@@ -94,11 +94,11 @@ func createPVC(namespace string, appName string, storageClassName string, size s
 		return
 	}
 
-	log.Printf("PVC %s created successfully!", pvc)
+	log.Printf("PVC %s created successfully!", appName+"-pvc")
 
 }
 
-// createDeployment creates a deployment with a PVC
+// createDeployment creates a deployment with a PVC and Pod Anti-Affinity rules
 func createDeploymentWithPVC(namespace string, appName string, appImage string, tagImage string, containerPort int32, replicas int32) {
 
 	var int32Ptr = func(i int32) *int32 { return &i }
@@ -130,8 +130,25 @@ func createDeploymentWithPVC(namespace string, appName string, appImage string, 
 						"app": appName,
 					},
 				},
-
 				Spec: corev1.PodSpec{
+					Affinity: &corev1.Affinity{
+						PodAntiAffinity: &corev1.PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+								{
+									LabelSelector: &metav1.LabelSelector{
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "app",
+												Operator: metav1.LabelSelectorOpIn,
+												Values:   []string{appName},
+											},
+										},
+									},
+									TopologyKey: "kubernetes.io/hostname",
+								},
+							},
+						},
+					},
 					Containers: []corev1.Container{
 						{
 
@@ -173,13 +190,14 @@ func createDeploymentWithPVC(namespace string, appName string, appImage string, 
 
 }
 
+// main function, we will create a Deployment and a PVC with a Portworx Sharedv4 volume
 func main() {
 
 	log.Printf("---Starting Kubernetes external client!---")
 
-	createPVC("default", "nginx", "portworx-db-sc", "2Gi")
+	createSharedv4PVC("default", "nginx", "portworx-sharedv4-csi", "2Gi")
 
-	createDeploymentWithPVC("default", "nginx", "nginx", "1.19.0", 80, 1)
+	createDeploymentWithPVC("default", "nginx", "nginx", "1.19.0", 80, 3)
 
 	log.Printf("Waiting for 10 seconds to create the deployment")
 
