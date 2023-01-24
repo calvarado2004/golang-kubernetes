@@ -19,7 +19,7 @@ func main() {
 
 	createSharedv4PVC("default", "nginx", "portworx-sharedv4-csi", "2Gi")
 
-	createDeploymentWithPVC("default", "nginx", "nginx", "1.23.3", 80, 3)
+	createDeploymentWithPVC("default", "nginx", "nginx", "1.23.2", 80, 3)
 
 	var labels = make(map[string]string)
 
