@@ -64,12 +64,15 @@ func waitForPods(deployLabels map[string]string) error {
 		}
 
 		if podsRunning > 0 && podsRunning == len(podList.Items) {
+
+			fmt.Printf("All pods are ready, (running %d / %d)...\n", podsRunning, len(podList.Items))
+
 			break
 		}
 
 		fmt.Printf("Waiting for pods to be ready, (running %d / %d)...\n", podsRunning, len(podList.Items))
 
-		time.Sleep(3 * time.Second)
+		time.Sleep(5 * time.Second)
 
 	}
 
