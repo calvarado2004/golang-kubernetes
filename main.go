@@ -2,8 +2,6 @@ package main
 
 import (
 	"log"
-	"time"
-
 	//
 	// Uncomment to load all auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -21,11 +19,18 @@ func main() {
 
 	createSharedv4PVC("default", "nginx", "portworx-sharedv4-csi", "2Gi")
 
-	createDeploymentWithPVC("default", "nginx", "nginx", "1.19.0", 80, 3)
+	createDeploymentWithPVC("default", "nginx", "nginx", "1.23.3", 80, 3)
 
-	log.Printf("Waiting for 10 seconds to create the deployment")
+	var labels = make(map[string]string)
 
-	time.Sleep(10 * time.Second)
+	labels["app"] = "nginx"
+
+	err := waitForPods(labels)
+
+	if err != nil {
+		log.Printf("Error waiting for pods: %v", err)
+		return
+	}
 
 	listPods("default")
 

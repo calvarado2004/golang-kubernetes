@@ -77,8 +77,9 @@ func createDeploymentWithPVC(namespace string, appName string, appImage string, 
 	}
 
 	ContainerVar := corev1.Container{
-		Name:  appName,
-		Image: appImage + ":" + tagImage,
+		Name:            appName,
+		Image:           appImage + ":" + tagImage,
+		ImagePullPolicy: corev1.PullAlways,
 		Ports: []corev1.ContainerPort{
 			ContainerPortVar,
 		},
@@ -107,7 +108,8 @@ func createDeploymentWithPVC(namespace string, appName string, appImage string, 
 				Labels: labels,
 			},
 			Spec: corev1.PodSpec{
-				Affinity: &AffinityVar,
+				Affinity:      &AffinityVar,
+				SchedulerName: "stork",
 				Containers: []corev1.Container{
 					ContainerVar,
 				},
