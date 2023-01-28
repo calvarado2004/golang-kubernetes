@@ -1,6 +1,7 @@
 package main
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
 	//
 	// Uncomment to load all auth plugins
@@ -14,6 +15,8 @@ import (
 
 // main function, we will create a Deployment and a PVC with a Portworx Sharedv4 volume
 func main() {
+
+	var int32Ptr = func(i int32) *int32 { return &i }
 
 	log.Printf("---Starting Kubernetes external client!---")
 
@@ -33,5 +36,25 @@ func main() {
 	}
 
 	listPods("default")
+
+	var test []string
+
+	updateOptions := metav1.UpdateOptions{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		FieldManager:    "k8s-external-client",
+		FieldValidation: metav1.FieldValidationStrict,
+		DryRun:          test,
+	}
+
+	updateOptions.DeepCopy()
+
+	err = updateDeployment("default", "nginx-deployment", updateOptions)
+	if err != nil {
+		log.Printf("Error updating deployment: %v", err)
+		return
+	}
 
 }

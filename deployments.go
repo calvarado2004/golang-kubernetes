@@ -4,6 +4,7 @@ import (
 	"context"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
@@ -133,4 +134,40 @@ func createDeploymentWithPVC(namespace string, appName string, appImage string, 
 
 	log.Printf("Deployment %s created successfully!", deploy.Name)
 
+}
+
+func updateDeployment(namespace string, deployment string, updateOptions metav1.UpdateOptions) error {
+
+	clientset, err := getClient()
+	if err != nil {
+		log.Printf("Error getting client: %v", err)
+		return err
+	}
+
+	deployments := clientset.AppsV1().Deployments(namespace)
+
+	_, err = deployments.Get(context.Background(), deployment, metav1.GetOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		log.Printf("Error getting deployment %s", err)
+		return err
+	}
+
+	if errors.IsNotFound(err) {
+		log.Printf("Deployment %s not found", deployment)
+		return nil
+	}
+
+	deploy := clientset.AppsV1().Deployments(namespace)
+
+	DeploymentStruct := &appsv1.Deployment{}
+
+	deploymentResponse, err := deploy.Update(context.Background(), DeploymentStruct, updateOptions)
+	if err != nil {
+		log.Printf("Error updating deployment %s", err)
+		return err
+	}
+
+	log.Printf("Deployment %s updated successfully!", deploymentResponse.Name)
+
+	return nil
 }
