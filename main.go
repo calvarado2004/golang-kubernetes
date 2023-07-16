@@ -16,8 +16,6 @@ import (
 // main function, we will create a Deployment and a PVC with a Portworx Sharedv4 volume
 func main() {
 
-	var int32Ptr = func(i int32) *int32 { return &i }
-
 	log.Printf("---Starting Kubernetes external client!---")
 
 	createSharedv4PVC("default", "nginx", "portworx-sharedv4-csi", "2Gi")
