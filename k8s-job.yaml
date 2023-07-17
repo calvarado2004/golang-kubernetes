@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: example-k8s-job
+  namespace: portworx
+spec:
+  template:
+    spec:
+      serviceAccountName: portworx  # Service account with required RBAC
+      containers:
+        - name: my-k8s-app
+          image: calvarado2004/example-k8s-job:latest
+          imagePullPolicy: Always
+      restartPolicy: OnFailure

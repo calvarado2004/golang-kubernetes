@@ -18,7 +18,7 @@ func main() {
 
 	log.Printf("---Starting Kubernetes external client!---")
 
-	createSharedv4PVC("default", "nginx", "portworx-sharedv4-csi", "2Gi")
+	createSharedv4PVC("default", "nginx", "px-csi-db", "2Gi")
 
 	createDeploymentWithPVC("default", "nginx", "nginx", "1.23.2", 80, 3)
 
